@@ -62,8 +62,8 @@ def run(config_type: str, source_moniker: str) -> dict:
     print("[runner] step 4/5 — posting bundle to Medplum")
     client = MedplumClient()
     result = client.post_bundle(bundle)
-    entry_count = len(result.get("entry", []))
-    print(f"[runner] posted {entry_count} entries")
+
+    _report_results(result, importer.bundle_type())
 
     print("[runner] step 5/5 — verify_import")
     importer._medplum = client
@@ -71,3 +71,26 @@ def run(config_type: str, source_moniker: str) -> dict:
 
     print("[runner] done.")
     return result
+
+
+def _report_results(response: dict, bundle_type: str) -> None:
+    entries = response.get("entry", [])
+    if bundle_type != "batch":
+        print(f"[runner] posted {len(entries)} entries (transaction)")
+        return
+
+    succeeded = []
+    failed = []
+    for i, entry in enumerate(entries):
+        status = entry.get("response", {}).get("status", "")
+        if status.startswith("2"):
+            succeeded.append(i)
+        else:
+            outcome = entry.get("response", {}).get("outcome", {})
+            issues = outcome.get("issue", [{}])
+            detail = issues[0].get("diagnostics", status)
+            failed.append((i, detail))
+
+    print(f"[runner] batch results: {len(succeeded)} succeeded, {len(failed)} failed")
+    for i, detail in failed:
+        print(f"[runner]   entry {i} failed: {detail}")

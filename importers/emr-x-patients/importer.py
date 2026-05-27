@@ -62,7 +62,7 @@ class EmrXPatientsImporter(BaseImporter):
 
         self._bundle = {
             "resourceType": "Bundle",
-            "type": "transaction",
+            "type": self.bundle_type(),
             "entry": entries,
         }
         return self._bundle

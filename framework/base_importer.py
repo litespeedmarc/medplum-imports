@@ -34,7 +34,7 @@ class BaseImporter(ABC):
     @abstractmethod
     def generate_bundle(self) -> dict:
         """
-        Transform source data into a FHIR R4 transaction Bundle dict.
+        Transform source data into a FHIR R4 Bundle dict (type from bundle_type()).
         Must be deterministic.
         Store result in self._bundle and return it.
         """
@@ -46,6 +46,22 @@ class BaseImporter(ABC):
         Check required fields, reference integrity, and code system values.
         Raise BundleValidationError with specifics on failure.
         """
+
+    def bundle_type(self) -> str:
+        """
+        FHIR bundle type to use when posting to Medplum.
+
+        'batch'       — entries are independent; Medplum processes each one
+                        separately and returns per-entry status. One bad row
+                        does not block others. Default.
+
+        'transaction' — atomic; all entries commit or none do. Use when entries
+                        have dependencies (e.g. Encounter references a Patient
+                        in the same bundle).
+
+        Override to return 'transaction' when atomicity is required.
+        """
+        return "batch"
 
     def import_bundle(self) -> None:
         """Framework-owned step. Do not override."""
