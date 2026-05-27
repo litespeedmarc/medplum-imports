@@ -1,0 +1,4 @@
+patient_id,first_name,last_name,dob,gender,phone,email,address,city,state,zip
+EMR-1001,Alice,Smith,1985-03-15,F,555-867-5309,alice@example.com,123 Main St,Boston,MA,02101
+EMR-1002,David,Williams,1990-02-28,M,888-555-8439,david@example.com,456 Oak Ave,San Francisco,CA,94102
+EMR-1003,Jane,California,1978-07-04,F,555-999-1234,,789 Pine Rd,Los Angeles,CA,90001
