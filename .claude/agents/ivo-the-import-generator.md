@@ -125,13 +125,10 @@ Commit the log file after each phase update.
 gh issue comment {number} --repo {repo} --body "$(cat <<'EOF'
 👋 Hi — I'm Ivo, an AI import generator working on behalf of @{user}.
 
-To build the `{config-type}` importer I need a sample of the source data.
-Could you attach or paste:
+To build the `{config-type}` importer, I need a sample of the source data.
+Could you attach or paste a representative extract (5–10 rows is enough).
 
-- A representative extract (5–10 rows is enough)
-- Ideally one row per edge case: missing optional fields, unusual coded values, etc.
-
-No real patient data please — synthetic or anonymized only.
+⚠️ **NO REAL PATIENT DATA — ANONYMIZED OR SYNTHETIC ONLY.**
 
 I'll resume once the sample is available.
 
