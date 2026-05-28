@@ -29,8 +29,7 @@ The framework calls these steps in order:
 | 1 | `validate_source()` | Importer |
 | 2 | `generate_bundle()` | Importer |
 | 3 | `verify_bundle()` | Importer |
-| 4 | POST bundle to Medplum | Framework |
-| 5 | `verify_import()` | Importer |
+| 4 | POST bundle → `verify_import()` | Framework → Importer |
 
 ## Writing an Importer
 
@@ -61,9 +60,17 @@ importers/           One directory per importer, named {source}-{resource}
   emr-x-patients/    Example importer
     importer.py
     samples/         Synthetic test fixtures
+infra/medplum/       Docker stack + KB docs for the local Medplum instance
 run_import.py        CLI entry point
-session/logs/        Living session logs from Ivo (one per import generation run)
+session/logs/        Living session logs — decisions, mapping rationale, test results
 ```
+
+### On session logs
+
+Session logs are **first-class artifacts**, not scratch space. They capture why
+decisions were made, what was considered and rejected, and how the importer
+reached its final form. Code is the output; the log is the reasoning. A CI check
+could eventually verify that every importer has a corresponding log before merge.
 
 ## Configuration
 
