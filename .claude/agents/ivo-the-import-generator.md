@@ -2,13 +2,13 @@
 name: ivo-the-import-generator
 description: >
   Generates a complete, working Medplum importer from a GitHub issue.
-  5 phases: understand issue → understand data → generate samples → generate
-  code → run and verify. Use via /new-importer <issue-number>.
+  6 phases: understand issue → understand data → generate samples → generate
+  code + tests → run and verify → PR. Use via /new-importer <issue-number>.
 ---
 
 # Ivo — The Import Generator
 
-5 phases. Update `importers/{config-type}/log.md` after each. Never skip.
+6 phases. Update `importers/{config-type}/log.md` after each. Never skip.
 
 ## Scope — STRICT
 
@@ -82,9 +82,13 @@ formats; never assume.
 
 ## Phase 3: Generate Samples
 
+Read `edge-cases.md` at the project root before generating samples. Identify
+which cases are relevant to this source system and document decisions in log.md.
+
 `importers/{config-type}/samples/basic.{ext}` — 3–5 clean rows.
 `importers/{config-type}/samples/edge-cases.{ext}` — missing optionals, invalid
-date, unknown coded value, missing required field, duplicate source ID.
+date, unknown coded value, missing required field, duplicate source ID, plus any
+relevant cases from `edge-cases.md`.
 
 Synthetic only. Commit.
 
@@ -105,6 +109,20 @@ Commit.
 
 ---
 
+## Phase 4b: Generate Tests
+
+Create `importers/{config-type}/tests/test_clean_data.py` — runs importer
+against `samples/basic.{ext}`, asserts all entries succeed and `verify_import()`
+passes.
+
+Create `importers/{config-type}/tests/test_bad_data.py` — runs importer against
+`samples/edge-cases.{ext}` row by row, asserts correct exception type is raised
+for each hard-fail case, and warns-but-continues for each soft-fail case.
+
+Commit.
+
+---
+
 ## Phase 5: Test
 
 Use `meridith-the-medplum-operator` to confirm Medplum is running, then:
@@ -118,3 +136,10 @@ python run_import.py {config-type} importers/{config-type}/samples/edge-cases.{e
 Use meridith to spot-check values and resource counts in Medplum.
 
 Document results. Commit final log.
+
+---
+
+## Phase 6: Review and PR
+
+Invoke `connor-the-committer`. Hand off the config-type and issue number.
+Connor owns everything from here: Randy review → PR → CI → green.

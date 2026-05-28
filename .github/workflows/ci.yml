@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Check importer log.md
+        run: |
+          for dir in importers/*/; do
+            [ -f "${dir}log.md" ] || { echo "FAIL: missing ${dir}log.md"; exit 1; }
+          done
+
+      - name: Check importer tests
+        run: |
+          for dir in importers/*/; do
+            [ -f "${dir}tests/test_clean_data.py" ] || { echo "FAIL: missing ${dir}tests/test_clean_data.py"; exit 1; }
+            [ -f "${dir}tests/test_bad_data.py" ]   || { echo "FAIL: missing ${dir}tests/test_bad_data.py"; exit 1; }
+          done
+
+      - name: Run tests
+        run: pytest importers/ -v
+        env:
+          MEDPLUM_BASE_URL: ${{ secrets.MEDPLUM_BASE_URL || 'http://localhost:8103' }}
+          MEDPLUM_EMAIL: ${{ secrets.MEDPLUM_EMAIL || 'admin@example.com' }}
+          MEDPLUM_PASSWORD: ${{ secrets.MEDPLUM_PASSWORD || 'medplum_admin' }}

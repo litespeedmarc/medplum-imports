@@ -60,9 +60,12 @@ importers/           One directory per importer, named {source}-{resource}
   emr-x-patients/    Example importer
     importer.py
     log.md           Decisions, mapping rationale, test results
-    samples/         Synthetic test fixtures
+    samples/         Synthetic test fixtures (basic + edge-cases)
+    tests/           test_clean_data.py + test_bad_data.py
+edge-cases.md        Healthcare data quality reference for Ivo
 infra/medplum/       Docker stack + KB docs for the local Medplum instance
 run_import.py        CLI entry point
+.github/workflows/   CI: tests + log.md + test file presence checks
 ```
 
 ### On importer logs
