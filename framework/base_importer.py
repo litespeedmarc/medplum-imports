@@ -1,13 +1,7 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import Any
 
-from .exceptions import CleanableDataWarning, UncleanableDataError
-
-
-class ImportMode(Enum):
-    DEV  = "dev"   # strict — CleanableDataWarning raises immediately
-    PROD = "prod"  # lenient — cleanable rows normalize+warn; uncleanable rows go to exceptions
+from .exceptions import UncleanableDataError
 
 
 class BaseImporter(ABC):
@@ -18,10 +12,14 @@ class BaseImporter(ABC):
     and preserve source data fidelity. When data quality is ambiguous, the
     importer decides whether it is cleanable or not — never silently coerces.
 
-    Modes:
-      DEV  — strict. Use in tests. CleanableDataWarning raises like an error.
-      PROD — lenient. Cleanable rows normalize and continue. Uncleanable rows
-             are captured in self.exceptions and skipped. Import continues.
+    Row-level data quality:
+      _warn(row_id, msg)      — cleanable issue; normalizes, records to self.warnings
+      _reject(row_id, reason) — not-cleanable; records to self.exceptions, skips row
+
+    Tests assert against self.warnings and self.exceptions to verify behaviour:
+      clean data        → both empty
+      cleanable data    → warnings populated, exceptions empty
+      not-cleanable     → exceptions populated
 
     Lifecycle (called by runner):
       1. validate_source()
@@ -31,21 +29,18 @@ class BaseImporter(ABC):
       5. verify_import()
     """
 
-    def __init__(self, source: Any, mode: ImportMode = ImportMode.DEV):
+    def __init__(self, source: Any):
         self.source = source
-        self.mode = mode
         self._bundle: dict | None = None
         self.warnings: list[tuple[str, str]] = []    # (row_id, message)
         self.exceptions: list[tuple[str, str]] = []  # (row_id, reason)
 
     def _warn(self, row_id: str, message: str) -> None:
-        """Cleanable issue. DEV: raises. PROD: records warning, continues."""
-        if self.mode == ImportMode.DEV:
-            raise CleanableDataWarning(f"{row_id}: {message}")
+        """Cleanable issue — normalize and continue. Records to self.warnings."""
         self.warnings.append((row_id, message))
 
     def _reject(self, row_id: str, reason: str) -> None:
-        """Uncleanable issue. Both modes: records to exceptions, caller must skip row."""
+        """Not-cleanable — skip row. Records to self.exceptions. Caller must catch."""
         self.exceptions.append((row_id, reason))
         raise UncleanableDataError(f"{row_id}: {reason}")
 

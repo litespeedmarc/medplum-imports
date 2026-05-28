@@ -28,7 +28,7 @@
 import importlib.util
 from pathlib import Path
 
-from .base_importer import BaseImporter, ImportMode
+from .base_importer import BaseImporter
 from .medplum_client import MedplumClient
 from .exceptions import ImporterNotFoundError
 
@@ -68,14 +68,13 @@ def _resolve_source(moniker: str):
     raise ValueError(f"Cannot resolve source moniker: '{moniker}'")
 
 
-def run(config_type: str, source_moniker: str, mode: ImportMode = ImportMode.DEV) -> dict:
+def run(config_type: str, source_moniker: str) -> dict:
     print(f"[runner] config-type: {config_type}")
     print(f"[runner] source:      {source_moniker}")
-    print(f"[runner] mode:        {mode.value}")
 
     ImporterClass = _load_importer_class(config_type)
     source = _resolve_source(source_moniker)
-    importer: BaseImporter = ImporterClass(source, mode=mode)
+    importer: BaseImporter = ImporterClass(source)
 
     print("[runner] step 1/4 — validate_source")
     importer.validate_source()

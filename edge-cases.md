@@ -8,13 +8,11 @@ Document decisions (and why) in log.md.
 
 ## Three data tiers
 
-| Tier | Exception | DEV mode | PROD mode |
-|---|---|---|---|
-| Clean | — | imports | imports |
-| Cleanable | `CleanableDataWarning` | raises immediately | normalizes, records warning, imports |
-| Not-cleanable | `UncleanableDataError` | row skipped, recorded in exceptions | row skipped, recorded in exceptions |
-
-In the importer: use `self._warn(row_id, msg)` for cleanable, `self._reject(row_id, reason)` for not-cleanable.
+| Tier | Method | Result |
+|---|---|---|
+| Clean | — | imports, warnings and exceptions empty |
+| Cleanable | `self._warn(row_id, msg)` | imports, warning recorded in `importer.warnings` |
+| Not-cleanable | `self._reject(row_id, reason)` | row skipped, recorded in `importer.exceptions` |
 
 ---
 

@@ -114,16 +114,15 @@ Commit.
 
 Three test files, mirroring the three sample files:
 
-`tests/test_clean_data.py` — DEV mode, runs against `samples/clean.{ext}`.
-All rows import, `verify_import()` passes, no warnings or exceptions.
+`tests/test_clean_data.py` — runs against `samples/clean.{ext}`.
+All rows import. `importer.warnings` and `importer.exceptions` both empty.
 
-`tests/test_cleanable_data.py` — two sub-tests:
-  - DEV mode: `CleanableDataWarning` raised for each cleanable row
-  - PROD mode: rows import with warnings recorded in `importer.warnings`
+`tests/test_cleanable_data.py` — runs against `samples/cleanable.{ext}`.
+All rows import. `importer.warnings` populated. `importer.exceptions` empty.
 
-`tests/test_bad_data.py` — both modes, runs against `samples/not-cleanable.{ext}`.
-Each row triggers `UncleanableDataError`, row appears in `importer.exceptions`,
-import continues past it.
+`tests/test_bad_data.py` — runs against `samples/not-cleanable.{ext}`.
+Each row caught via `UncleanableDataError`. `importer.exceptions` populated.
+Import continues past each rejected row.
 
 Commit.
 
