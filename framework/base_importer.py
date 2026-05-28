@@ -42,7 +42,7 @@ class BaseImporter(ABC):
         self.warnings.append((row_id, message))
 
     def _reject(self, row_id: str, reason: str) -> None:
-        """Not-cleanable — records to self.exceptions. Caller must skip the row."""
+        """Not-cleanable — records to self.exceptions. Caller decides what to do next."""
         self.exceptions.append((row_id, reason))
 
     @abstractmethod
