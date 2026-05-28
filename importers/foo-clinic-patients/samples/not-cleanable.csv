@@ -1,0 +1,6 @@
+patient_id,mrn,health_card_number,first_name,last_name,date_of_birth,gender,phone,email,address_line_1,city,province,postal_code,primary_language,allergies,medications,source_system_code
+11,MRN-200011,1122-3344-5566,Anna,Kowalski,03/12/1978,female,(403) 555-1101,anna.k@example.com,9 Centre Street,Calgary,AB,T2G 0C7,English,None,None,CLINIC-A
+12,MRN-200012,8877-6655-4433,Liam,Brennan,2024-03,male,(709) 555-1202,liam.b@example.com,50 Water Street,St. Johns,NL,A1C 1A1,English,None,None,LEGACY-01
+13,,4499-0011-2233,Fatima,Al-Rashid,1988-11-25,female,(647) 555-1303,fatima@example.com,88 King Street,Toronto,ON,M5C 2W7,Arabic,None,None,INT-998
+14,UNKNOWN,3366-9900-1122,Robert,Leblanc,1961-05-19,male,(506) 555-1404,robert.l@example.com,15 Main Street,Moncton,NB,E1C 1A1,French,None,None,CLINIC-B
+15,MRN-200015,7733-2211-8844,Yuki,Tanaka,1993-06-30,female,(250) 555-1505,yuki.t@example.com,200 Douglas Street,Victoria,BC,V8V 2P1,English,None,None,LEGACY-01

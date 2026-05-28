@@ -1,0 +1,6 @@
+patient_id,mrn,health_card_number,first_name,last_name,date_of_birth,gender,phone,email,address_line_1,city,province,postal_code,primary_language,allergies,medications,source_system_code
+1,MRN-200001,8823-4411-7700,Alice,Tremblay,1985-03-15,female,(514) 555-0101,alice.tremblay@example.com,45 Rue Principale,Montreal,QC,H2X 1Y4,French,None,None,CLINIC-A
+2,MRN-200002,3345-7789-1102,David,MacLeod,1972-11-08,male,(902) 555-0202,david.macleod@example.com,12 Maple Street,Halifax,NS,B3H 1A1,English,None,None,CLINIC-B
+3,MRN-200003,6612-3390-4456,Sofia,Reyes,1990-07-22,female,(604) 555-0303,sofia.reyes@example.com,890 West Broadway,Vancouver,BC,V5Z 1K3,Spanish,None,None,LEGACY-01
+4,MRN-200004,9901-1122-8830,Omar,Hassan,1955-12-01,male,(613) 555-0404,omar.hassan@example.com,77 Carling Avenue,Ottawa,ON,K1Y 2E5,Arabic,None,None,INT-998
+5,MRN-200005,4478-6623-0019,Claire,Bouchard,2001-04-30,female,(418) 555-0505,claire.bouchard@example.com,300 Grande Allee Est,Quebec City,QC,G1R 2J5,French,None,None,CLINIC-A
