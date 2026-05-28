@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .exceptions import UncleanableDataError
-
 
 class BaseImporter(ABC):
     """
@@ -12,14 +10,18 @@ class BaseImporter(ABC):
     and preserve source data fidelity. When data quality is ambiguous, the
     importer decides whether it is cleanable or not — never silently coerces.
 
-    Row-level data quality:
-      _warn(row_id, msg)      — cleanable issue; normalizes, records to self.warnings
-      _reject(row_id, reason) — not-cleanable; records to self.exceptions, skips row
+    Row-level data quality reporting:
+      _warn(row_id, msg)      — cleanable; records to self.warnings, row imports
+      _reject(row_id, reason) — not-cleanable; records to self.exceptions.
+                                Caller is responsible for skipping the row (continue).
 
-    Tests assert against self.warnings and self.exceptions to verify behaviour:
+    Neither method raises. The importer controls its own flow. This works for
+    any source type: CSV, DB cursor, API page, etc.
+
+    Tests assert against self.warnings and self.exceptions:
       clean data        → both empty
       cleanable data    → warnings populated, exceptions empty
-      not-cleanable     → exceptions populated
+      not-cleanable     → exceptions populated, bad rows absent from bundle
 
     Lifecycle (called by runner):
       1. validate_source()
@@ -36,13 +38,12 @@ class BaseImporter(ABC):
         self.exceptions: list[tuple[str, str]] = []  # (row_id, reason)
 
     def _warn(self, row_id: str, message: str) -> None:
-        """Cleanable issue — normalize and continue. Records to self.warnings."""
+        """Cleanable issue — row imports, warning recorded."""
         self.warnings.append((row_id, message))
 
     def _reject(self, row_id: str, reason: str) -> None:
-        """Not-cleanable — skip row. Records to self.exceptions. Caller must catch."""
+        """Not-cleanable — records to self.exceptions. Caller must skip the row."""
         self.exceptions.append((row_id, reason))
-        raise UncleanableDataError(f"{row_id}: {reason}")
 
     @abstractmethod
     def validate_source(self) -> None:

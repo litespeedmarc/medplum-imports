@@ -11,6 +11,8 @@ GENDER_MAP = {"M": "male", "F": "female", "O": "other", "U": "unknown", "X": "un
 
 SYSTEM_MRN = "http://emr-x.example.org/patient-id"
 
+PLACEHOLDER_IDS = {"", "unknown", "000-000-000"}
+
 
 class EmrXPatientsImporter(BaseImporter):
     """
@@ -21,9 +23,11 @@ class EmrXPatientsImporter(BaseImporter):
 
     Data fidelity notes:
     - patient_id maps to identifier (system: SYSTEM_MRN) — never discarded
-    - Dates validated strictly; invalid dates raise rather than coerce
-    - gender 'X' maps to 'unknown' — no clinical interpretation
-    - Empty optional fields are omitted from the bundle (not nulled)
+    - Null/placeholder patient_id → _reject() (untrackable resource)
+    - Dates validated strictly; ambiguous format → _reject() (field context: birthDate)
+    - Unknown gender code → _warn(), mapped to 'unknown'
+    - Missing first_name or last_name → _warn(), field omitted
+    - Empty optional fields omitted from bundle (not nulled)
     """
 
     def validate_source(self) -> None:
@@ -37,7 +41,6 @@ class EmrXPatientsImporter(BaseImporter):
             missing = REQUIRED_COLUMNS - set(reader.fieldnames)
             if missing:
                 raise SourceValidationError(f"Missing required columns: {missing}")
-
             rows = list(reader)
             if not rows:
                 raise SourceValidationError("File has a header but no data rows")
@@ -49,14 +52,23 @@ class EmrXPatientsImporter(BaseImporter):
 
         with open(self.source, newline="") as f:
             for row in csv.DictReader(f):
-                patient = self._row_to_patient(row)
+                pid = row.get("patient_id", "").strip()
+
+                if pid.lower() in PLACEHOLDER_IDS:
+                    self._reject(pid or "?", f"invalid patient_id '{pid}' — untrackable resource")
+                    continue
+
+                patient = self._row_to_patient(pid, row)
+                if patient is None:
+                    continue  # _reject() already called inside _row_to_patient
+
                 entries.append({
-                    "fullUrl": f"urn:uuid:emr-x-{row['patient_id']}",
+                    "fullUrl": f"urn:uuid:emr-x-{pid}",
                     "resource": patient,
                     "request": {
                         "method": "POST",
                         "url": "Patient",
-                        "ifNoneExist": f"identifier={SYSTEM_MRN}|{row['patient_id']}",
+                        "ifNoneExist": f"identifier={SYSTEM_MRN}|{pid}",
                     },
                 })
 
@@ -67,20 +79,22 @@ class EmrXPatientsImporter(BaseImporter):
         }
         return self._bundle
 
-    def _row_to_patient(self, row: dict) -> dict:
+    def _row_to_patient(self, pid: str, row: dict) -> dict | None:
         patient = {
             "resourceType": "Patient",
-            "identifier": [{
-                "system": SYSTEM_MRN,
-                "value": row["patient_id"],
-            }],
+            "identifier": [{"system": SYSTEM_MRN, "value": pid}],
             "name": [{"use": "official"}],
         }
 
         if row.get("last_name"):
             patient["name"][0]["family"] = row["last_name"]
+        else:
+            self._warn(pid, "missing last_name")
+
         if row.get("first_name"):
             patient["name"][0]["given"] = [row["first_name"]]
+        else:
+            self._warn(pid, "missing first_name")
 
         raw_dob = row.get("dob", "").strip()
         if raw_dob:
@@ -88,13 +102,15 @@ class EmrXPatientsImporter(BaseImporter):
                 datetime.strptime(raw_dob, "%Y-%m-%d")
                 patient["birthDate"] = raw_dob
             except ValueError:
-                raise SourceValidationError(
-                    f"Invalid date '{raw_dob}' for patient {row['patient_id']}. "
-                    f"Expected YYYY-MM-DD. Refusing to coerce — every transformation is a liability."
-                )
+                # Field context: birthDate. Any format other than YYYY-MM-DD is
+                # not-cleanable — a wrong guess changes a clinical record.
+                self._reject(pid, f"ambiguous birthDate '{raw_dob}' — cannot safely interpret")
+                return None
 
         gender_raw = row.get("gender", "").strip().upper()
         if gender_raw:
+            if gender_raw not in GENDER_MAP:
+                self._warn(pid, f"unknown gender code '{gender_raw}', mapped to unknown")
             patient["gender"] = GENDER_MAP.get(gender_raw, "unknown")
 
         telecom = []
@@ -118,11 +134,9 @@ class EmrXPatientsImporter(BaseImporter):
     def verify_bundle(self) -> None:
         if not self._bundle:
             raise BundleValidationError("Bundle is empty — call generate_bundle() first")
-
         entries = self._bundle.get("entry", [])
         if not entries:
             raise BundleValidationError("Bundle has no entries")
-
         for i, entry in enumerate(entries):
             resource = entry.get("resource", {})
             if resource.get("resourceType") != "Patient":
@@ -133,16 +147,22 @@ class EmrXPatientsImporter(BaseImporter):
     def verify_import(self) -> None:
         client: MedplumClient = getattr(self, "_medplum", MedplumClient())
 
+        rejected_ids = {row_id for row_id, _ in self.exceptions}
+
         with open(self.source, newline="") as f:
-            source_ids = [row["patient_id"] for row in csv.DictReader(f)]
+            expected = [
+                row["patient_id"] for row in csv.DictReader(f)
+                if row["patient_id"].lower() not in PLACEHOLDER_IDS
+                and row["patient_id"] not in rejected_ids
+            ]
 
         missing = []
-        for pid in source_ids:
+        for pid in expected:
             result = client.search("Patient", {"identifier": f"{SYSTEM_MRN}|{pid}"})
             if result.get("total", 0) == 0:
                 missing.append(pid)
 
         if missing:
             raise ImportVerificationError(
-                f"Import verification failed. {len(missing)} patient(s) not found in Medplum: {missing}"
+                f"Import verification failed. {len(missing)} patient(s) not found: {missing}"
             )

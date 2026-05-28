@@ -1,0 +1,4 @@
+patient_id,first_name,last_name,dob,gender,phone,email,address,city,state,zip
+EMR-2001,John,,1965-11-30,M,,,100 Unknown St,,,
+EMR-2002,,Smith,1992-06-15,X,555-200-0002,,300 Maple Ave,Seattle,WA,98101
+EMR-2003,Maria,Garcia,1978-04-20,Z,,,,,,

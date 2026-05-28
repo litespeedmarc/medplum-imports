@@ -12,7 +12,10 @@ Document decisions (and why) in log.md.
 |---|---|---|
 | Clean | — | imports, warnings and exceptions empty |
 | Cleanable | `self._warn(row_id, msg)` | imports, warning recorded in `importer.warnings` |
-| Not-cleanable | `self._reject(row_id, reason)` | row skipped, recorded in `importer.exceptions` |
+| Not-cleanable | `self._reject(row_id, reason)` + `continue` | row skipped, recorded in `importer.exceptions` |
+
+Neither method raises. The importer controls its own flow with an explicit `continue`.
+This works for any source type: CSV rows, DB cursor rows, API pages, etc.
 
 ---
 

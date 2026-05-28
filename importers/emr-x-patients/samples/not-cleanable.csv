@@ -1,0 +1,4 @@
+patient_id,first_name,last_name,dob,gender,phone,email,address,city,state,zip
+EMR-3001,Jane,Doe,03/15/1985,F,,,,,,
+EMR-3002,Bob,Brown,1990-07-12,M,,,,,,
+UNKNOWN,Carol,White,1955-01-01,F,,,,,,
