@@ -59,18 +59,18 @@ framework/           Core: BaseImporter, runner, MedplumClient, exceptions
 importers/           One directory per importer, named {source}-{resource}
   emr-x-patients/    Example importer
     importer.py
+    log.md           Decisions, mapping rationale, test results
     samples/         Synthetic test fixtures
 infra/medplum/       Docker stack + KB docs for the local Medplum instance
 run_import.py        CLI entry point
-session/logs/        Living session logs — decisions, mapping rationale, test results
 ```
 
-### On session logs
+### On importer logs
 
-Session logs are **first-class artifacts**, not scratch space. They capture why
-decisions were made, what was considered and rejected, and how the importer
-reached its final form. Code is the output; the log is the reasoning. A CI check
-could eventually verify that every importer has a corresponding log before merge.
+Each importer's `log.md` is a **first-class artifact**, not scratch space. It
+captures why decisions were made, what was considered and rejected, and how the
+importer reached its final form. Code is the output; the log is the reasoning.
+A CI check will eventually require `log.md` to exist before an importer can merge.
 
 ## Configuration
 

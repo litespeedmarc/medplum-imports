@@ -131,12 +131,12 @@ reviewed independently, committed cleanly, and not bundled into an importer PR.
 
 ---
 
-## Session Logs
+## Importer Logs
 
-Session logs in `session/logs/` are first-class artifacts. They capture
-decisions, field mapping rationale, what was considered and rejected, and test
-results. A CI check will eventually require a log to exist before an importer
-can merge.
+Each importer owns a `log.md` in its directory. It is a first-class artifact —
+not scratch space. It captures decisions, field mapping rationale, what was
+considered and rejected, and test results. A CI check will eventually require
+`log.md` to exist before an importer can merge.
 
 Frank owns the log *format convention* (defined in Ivo's agent). Frank does not
 write individual logs — that is Ivo's responsibility.
