@@ -23,9 +23,9 @@ fails, report all failures together so Connor can fix them in one pass.
 
 **Required files**
 - `importer.py` exists
-- `log.md` exists with all 5 phases completed
-- `samples/basic.{ext}` and `samples/edge-cases.{ext}` exist
-- `tests/test_clean_data.py` and `tests/test_bad_data.py` exist
+- `log.md` exists with all phases completed
+- `samples/clean.{ext}`, `samples/cleanable.{ext}`, `samples/not-cleanable.{ext}` exist
+- `tests/test_clean_data.py`, `tests/test_cleanable_data.py`, `tests/test_bad_data.py` exist
 
 **Importer correctness**
 - Extends `BaseImporter`

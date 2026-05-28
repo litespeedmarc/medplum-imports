@@ -23,11 +23,12 @@ jobs:
             [ -f "${dir}log.md" ] || { echo "FAIL: missing ${dir}log.md"; exit 1; }
           done
 
-      - name: Check importer tests
+      - name: Check importer tests and samples
         run: |
           for dir in importers/*/; do
-            [ -f "${dir}tests/test_clean_data.py" ] || { echo "FAIL: missing ${dir}tests/test_clean_data.py"; exit 1; }
-            [ -f "${dir}tests/test_bad_data.py" ]   || { echo "FAIL: missing ${dir}tests/test_bad_data.py"; exit 1; }
+            [ -f "${dir}tests/test_clean_data.py" ]     || { echo "FAIL: missing ${dir}tests/test_clean_data.py"; exit 1; }
+            [ -f "${dir}tests/test_cleanable_data.py" ] || { echo "FAIL: missing ${dir}tests/test_cleanable_data.py"; exit 1; }
+            [ -f "${dir}tests/test_bad_data.py" ]       || { echo "FAIL: missing ${dir}tests/test_bad_data.py"; exit 1; }
           done
 
       - name: Run tests

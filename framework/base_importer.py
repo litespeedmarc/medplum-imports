@@ -1,66 +1,68 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any
+
+from .exceptions import CleanableDataWarning, UncleanableDataError
+
+
+class ImportMode(Enum):
+    DEV  = "dev"   # strict — CleanableDataWarning raises immediately
+    PROD = "prod"  # lenient — cleanable rows normalize+warn; uncleanable rows go to exceptions
 
 
 class BaseImporter(ABC):
     """
     Base class for all Medplum importers.
 
-    Contract:
-      - Imports MUST be deterministic: same input always produces the same bundle.
-      - Data MUST stay as true to the source as possible. Every transformation
-        is a medical liability. If a value cannot be mapped cleanly, raise rather
-        than guess.
-      - The framework calls methods in this order:
-          1. validate_source()
-          2. generate_bundle()
-          3. verify_bundle()
-          4. [framework posts bundle to Medplum]
-          5. verify_import()
+    Every transformation is a medical liability. Importers must be deterministic
+    and preserve source data fidelity. When data quality is ambiguous, the
+    importer decides whether it is cleanable or not — never silently coerces.
+
+    Modes:
+      DEV  — strict. Use in tests. CleanableDataWarning raises like an error.
+      PROD — lenient. Cleanable rows normalize and continue. Uncleanable rows
+             are captured in self.exceptions and skipped. Import continues.
+
+    Lifecycle (called by runner):
+      1. validate_source()
+      2. generate_bundle()
+      3. verify_bundle()
+      4. [framework posts bundle]
+      5. verify_import()
     """
 
-    def __init__(self, source: Any):
+    def __init__(self, source: Any, mode: ImportMode = ImportMode.DEV):
         self.source = source
+        self.mode = mode
         self._bundle: dict | None = None
+        self.warnings: list[tuple[str, str]] = []    # (row_id, message)
+        self.exceptions: list[tuple[str, str]] = []  # (row_id, reason)
+
+    def _warn(self, row_id: str, message: str) -> None:
+        """Cleanable issue. DEV: raises. PROD: records warning, continues."""
+        if self.mode == ImportMode.DEV:
+            raise CleanableDataWarning(f"{row_id}: {message}")
+        self.warnings.append((row_id, message))
+
+    def _reject(self, row_id: str, reason: str) -> None:
+        """Uncleanable issue. Both modes: records to exceptions, caller must skip row."""
+        self.exceptions.append((row_id, reason))
+        raise UncleanableDataError(f"{row_id}: {reason}")
 
     @abstractmethod
     def validate_source(self) -> None:
-        """
-        Confirm the source is readable and structurally sound.
-        Does NOT transform data — only inspects.
-        Raise SourceValidationError with a specific message on failure.
-        """
+        """File-level check — source readable and structurally sound. Raises SourceValidationError."""
 
     @abstractmethod
     def generate_bundle(self) -> dict:
-        """
-        Transform source data into a FHIR R4 Bundle dict (type from bundle_type()).
-        Must be deterministic.
-        Store result in self._bundle and return it.
-        """
+        """Transform source → FHIR R4 Bundle. Use _warn()/_reject() for row-level issues."""
 
     @abstractmethod
     def verify_bundle(self) -> None:
-        """
-        Verify self._bundle is valid FHIR before it touches Medplum.
-        Check required fields, reference integrity, and code system values.
-        Raise BundleValidationError with specifics on failure.
-        """
+        """Pre-flight FHIR check on self._bundle. Raises BundleValidationError."""
 
     def bundle_type(self) -> str:
-        """
-        FHIR bundle type to use when posting to Medplum.
-
-        'batch'       — entries are independent; Medplum processes each one
-                        separately and returns per-entry status. One bad row
-                        does not block others. Default.
-
-        'transaction' — atomic; all entries commit or none do. Use when entries
-                        have dependencies (e.g. Encounter references a Patient
-                        in the same bundle).
-
-        Override to return 'transaction' when atomicity is required.
-        """
+        """'batch' (default) or 'transaction'. Override for atomic bundles."""
         return "batch"
 
     def import_bundle(self) -> None:
@@ -68,8 +70,4 @@ class BaseImporter(ABC):
 
     @abstractmethod
     def verify_import(self) -> None:
-        """
-        Confirm the import landed correctly in Medplum.
-        Query Medplum to check expected resources exist with correct data.
-        Raise ImportVerificationError on failure.
-        """
+        """Query Medplum to confirm resources landed. Raises ImportVerificationError."""

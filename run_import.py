@@ -1,35 +1,42 @@
 #!/usr/bin/env python3
 """
-run_import.py <config-type> <input-moniker>
+run_import.py <config-type> <input-moniker> [--mode dev|prod]
 
-config-type    Identifies the importer. Must include the source system name,
-               not just the resource type. Good: epic-patients, emr-x-labs.
-               Bad: csv-patients (too generic — which system?).
-
+config-type    Identifies the importer. Must include the source system name.
                Convention: importers/<config-type>/importer.py
                            class <ConfigType>Importer(BaseImporter)
 
 input-moniker  Source identifier: file path, database URL, API endpoint, etc.
-               The importer's validate_source() decides how to open it.
+
+--mode         dev  (default) — strict, CleanableDataWarning raises immediately
+               prod           — cleanable rows normalize+warn, uncleanable rows
+                                go to exceptions report, import continues
 
 Examples:
-  python run_import.py epic-patients   data/export_2024_03.csv
-  python run_import.py emr-x-labs      data/labs_march.csv
-  python run_import.py athena-encounters postgresql://localhost/athena
+  python run_import.py emr-x-patients data/export.csv
+  python run_import.py emr-x-patients data/export.csv --mode prod
 """
 import sys
 from framework.runner import run
+from framework.base_importer import ImportMode
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    args = sys.argv[1:]
+    mode = ImportMode.DEV
+
+    if "--mode" in args:
+        idx = args.index("--mode")
+        mode = ImportMode(args[idx + 1])
+        args = [a for i, a in enumerate(args) if i not in (idx, idx + 1)]
+
+    if len(args) != 2:
         print(__doc__)
         sys.exit(1)
 
-    config_type   = sys.argv[1]
-    input_moniker = sys.argv[2]
+    config_type, input_moniker = args
 
     try:
-        run(config_type, input_moniker)
+        run(config_type, input_moniker, mode=mode)
     except Exception as e:
         print(f"[error] {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)

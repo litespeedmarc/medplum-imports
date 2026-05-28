@@ -85,10 +85,11 @@ formats; never assume.
 Read `edge-cases.md` at the project root before generating samples. Identify
 which cases are relevant to this source system and document decisions in log.md.
 
-`importers/{config-type}/samples/basic.{ext}` — 3–5 clean rows.
-`importers/{config-type}/samples/edge-cases.{ext}` — missing optionals, invalid
-date, unknown coded value, missing required field, duplicate source ID, plus any
-relevant cases from `edge-cases.md`.
+`samples/clean.{ext}` — 3–5 rows with no issues.
+`samples/cleanable.{ext}` — rows with safe-to-normalize issues (unknown codes,
+missing optionals, whitespace). Each row documents which case it covers.
+`samples/not-cleanable.{ext}` — rows that must always be rejected: ambiguous
+dates, null MRNs, orphaned references. Each row documents why it is uncleanable.
 
 Synthetic only. Commit.
 
@@ -111,13 +112,18 @@ Commit.
 
 ## Phase 4b: Generate Tests
 
-Create `importers/{config-type}/tests/test_clean_data.py` — runs importer
-against `samples/basic.{ext}`, asserts all entries succeed and `verify_import()`
-passes.
+Three test files, mirroring the three sample files:
 
-Create `importers/{config-type}/tests/test_bad_data.py` — runs importer against
-`samples/edge-cases.{ext}` row by row, asserts correct exception type is raised
-for each hard-fail case, and warns-but-continues for each soft-fail case.
+`tests/test_clean_data.py` — DEV mode, runs against `samples/clean.{ext}`.
+All rows import, `verify_import()` passes, no warnings or exceptions.
+
+`tests/test_cleanable_data.py` — two sub-tests:
+  - DEV mode: `CleanableDataWarning` raised for each cleanable row
+  - PROD mode: rows import with warnings recorded in `importer.warnings`
+
+`tests/test_bad_data.py` — both modes, runs against `samples/not-cleanable.{ext}`.
+Each row triggers `UncleanableDataError`, row appears in `importer.exceptions`,
+import continues past it.
 
 Commit.
 

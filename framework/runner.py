@@ -28,7 +28,7 @@
 import importlib.util
 from pathlib import Path
 
-from .base_importer import BaseImporter
+from .base_importer import BaseImporter, ImportMode
 from .medplum_client import MedplumClient
 from .exceptions import ImporterNotFoundError
 
@@ -68,13 +68,14 @@ def _resolve_source(moniker: str):
     raise ValueError(f"Cannot resolve source moniker: '{moniker}'")
 
 
-def run(config_type: str, source_moniker: str) -> dict:
+def run(config_type: str, source_moniker: str, mode: ImportMode = ImportMode.DEV) -> dict:
     print(f"[runner] config-type: {config_type}")
     print(f"[runner] source:      {source_moniker}")
+    print(f"[runner] mode:        {mode.value}")
 
     ImporterClass = _load_importer_class(config_type)
     source = _resolve_source(source_moniker)
-    importer: BaseImporter = ImporterClass(source)
+    importer: BaseImporter = ImporterClass(source, mode=mode)
 
     print("[runner] step 1/4 — validate_source")
     importer.validate_source()
@@ -95,8 +96,20 @@ def run(config_type: str, source_moniker: str) -> dict:
 
     importer.verify_import()
 
+    _log_data_quality(importer)
     print("[runner] done.")
     return result
+
+
+def _log_data_quality(importer: BaseImporter) -> None:
+    if importer.warnings:
+        print(f"[runner] {len(importer.warnings)} warning(s):")
+        for row_id, msg in importer.warnings:
+            print(f"[runner]   warn  {row_id}: {msg}")
+    if importer.exceptions:
+        print(f"[runner] {len(importer.exceptions)} exception(s) — rows not imported:")
+        for row_id, reason in importer.exceptions:
+            print(f"[runner]   skip  {row_id}: {reason}")
 
 
 def _log_batch_result(response: dict, bundle_type: str) -> None:
