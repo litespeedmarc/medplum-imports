@@ -55,6 +55,15 @@ Read the issue. Extract source system, data format, target FHIR resource types.
 Not `csv-patients` or `patient-import` — too generic. Push back if source system
 is missing.
 
+**Immediately after determining `config-type`**, create and check out a feature branch:
+
+```bash
+git checkout -b importer/{config-type}
+```
+
+All subsequent commits go on this branch. Never commit to `main`. If you find
+yourself on `main`, stop and fix it before writing any files.
+
 ---
 
 ## Phase 2: Understand the Data
