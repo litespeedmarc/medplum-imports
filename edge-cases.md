@@ -51,6 +51,13 @@ A wrong guess changes clinical meaning. Reject in all modes.
 
 ## Principle
 
-If a wrong guess changes clinical meaning → not-cleanable → `_reject()`.
-If the transformation is unambiguous and safe → cleanable → `_warn()`.
-When in doubt, reject. Document the decision.
+The tier is not a property of the value — it is a property of the value **in the
+context of the field**.
+
+`3lb5oz` in a weight field → cleanable (valid value, normalize units).
+`3lb5oz` in a birthdate field → not-cleanable (nonsensical, cannot interpret).
+
+The same string can be cleanable in one field and not-cleanable in another.
+The importer author decides per-field and documents each decision in log.md.
+
+When in doubt, reject.
