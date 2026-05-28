@@ -117,7 +117,33 @@ Commit the log file after each phase update.
 
 ## Phase 2: Understand the Data
 
-1. Ask the user to provide a sample of the source data (or locate it if the issue links to one).
+1. Check the issue and the conversation for sample data. If not present, ask the
+   user once. If the user cannot provide it, post a comment on the GitHub issue
+   and stop:
+
+```bash
+gh issue comment {number} --repo {repo} --body "$(cat <<'EOF'
+👋 Hi — I'm Ivo, an AI import generator working on behalf of @{user}.
+
+To build the `{config-type}` importer I need a sample of the source data.
+Could you attach or paste:
+
+- A representative extract (5–10 rows is enough)
+- Ideally one row per edge case: missing optional fields, unusual coded values, etc.
+
+No real patient data please — synthetic or anonymized only.
+
+I'll resume once the sample is available.
+
+---
+*Posted by Ivo · AI import generator · medplum-imports*
+EOF
+)"
+```
+
+   Then stop and tell the coordinator: "Commented on issue #{number} requesting
+   sample data. Resume Phase 2 once the sample is provided."
+
 2. Analyze the structure: columns/fields, data types, cardinality, nullability.
 3. Map each source field to its FHIR target:
    - Flag fields with no clean FHIR mapping
