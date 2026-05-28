@@ -99,7 +99,9 @@ def test_cleanable_unknown_gender_maps_to_unknown():
     assert entry["resource"]["gender"] == "unknown"
 
     warn_msgs = [msg for _, msg in imp.warnings]
-    assert any("EXTRATERRESTRIAL" in m for m in warn_msgs)
+    # The importer lowercases the raw value before the lookup, so the warning
+    # contains the normalised form "extraterrestrial", not the original casing.
+    assert any("extraterrestrial" in m.lower() for m in warn_msgs)
 
 
 def test_cleanable_allergies_warn_fires():
