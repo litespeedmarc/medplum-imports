@@ -1,0 +1,6 @@
+patient_id,mrn,health_card_number,first_name,last_name,date_of_birth,gender,phone,email,address_line_1,city,province,postal_code,primary_language,allergies,medications,source_system_code
+6,MRN-200006,5512-9900-3341,  Maria  ,  Garcia  ,1978-06-14,female,(416) 555-0606,maria.garcia@example.com,55 Bloor Street,Toronto,ON,M4W 1A5,English,None,None,CLINIC-A
+7,MRN-200007,,James,Okafor,1968-09-03,unknown,(780) 555-0707,,100 Jasper Ave,Edmonton,AB,T5J 1V9,English,Penicillin rash,None,LEGACY-01
+8,MRN-200008,000-000-000,Priya,Patel,1995-02-17,female,(905) 555-0808,priya.patel@example.com,22 Dundas Street,Mississauga,ON,L5B 1E2,English,None,Metformin 500mg,CLINIC-B
+9,MRN-200009,7734-5521-8809,,Nguyen,1982-03-28,male,(204) 555-0909,,400 Portage Ave,Winnipeg,MB,R3C 0C4,English,None,None,INT-998
+10,MRN-200010,2290-4413-6678,Jean-Luc,Fortier,1950-08-11,EXTRATERRESTRIAL,(819) 555-1010,jean-luc@example.com,1 Rue du Marche,Sherbrooke,QC,J1H 1A1,French,None,None,CLINIC-A

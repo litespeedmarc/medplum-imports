@@ -1,6 +1,6 @@
 # foo-clinic-patients
 **issue:** #1 — Import patients from Foo Clinic
-**status:** Phase 2/6 — Data Analysis
+**status:** Phase 3/6 — Sample Files
 
 ## Phase 1: Issue Understanding
 Source system: Foo Clinic. Nightly CSV extract emailed to the team.
@@ -23,4 +23,10 @@ Field mapping decisions:
 - `medications` → same decision as allergies: out of scope for Patient resource. Omit, warn once per row if non-empty non-null value. Inconsistent capitalisation (Metformin 500mg vs metformin 500MG) reinforces the case-variant duplicate risk from edge-cases.md — cannot auto-merge, so omit is correct.
 - `source_system_code` → proprietary clinic-internal code with no standard mapping. Decision: preserve as a second identifier with system http://foo-clinic.example.org/source-system. Not rejected; just carried forward for traceability.
 - Null/placeholder MRN: blank or "UNKNOWN" → reject (untrackable resource per edge-cases.md).
+
+## Phase 3: Sample Files
+edge-cases.md reviewed. Relevant cases: ambiguous dates, null/placeholder MRN, unknown coded value (gender), missing optional fields, free-text allergies/medications, whitespace on name fields.
+clean.csv: 5 rows — all required fields present, YYYY-MM-DD dates, known gender values, all four language codes exercised, all four source_system_code values covered.
+cleanable.csv: 5 rows — whitespace on names (row 6, safe to strip); missing health_card_number (row 7, optional → omit, warn); placeholder health_card_number "000-000-000" (row 8, optional field placeholder → omit identifier entry, warn); missing first_name (row 9, optional → omit, warn); unknown gender code "EXTRATERRESTRIAL" (row 10, → warn, map to unknown). Also rows 7 and 8 contain allergies/medications values → warn per-row that these require separate import.
+not-cleanable.csv: 5 rows — MM/DD/YYYY date "03/12/1978" (row 11, ambiguous: could be Mar 12 or Dec 3 → not-cleanable per edge-cases.md); partial date "2024-03" (row 12, incomplete → not-cleanable); blank MRN (row 13, untrackable); placeholder MRN "UNKNOWN" (row 14, untrackable). Row 15 is a valid control row to verify the importer continues past rejected rows.
 
