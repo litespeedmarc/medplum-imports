@@ -1,6 +1,6 @@
 # foo-clinic-patients
 **issue:** #1 — Import patients from Foo Clinic
-**status:** Phase 3/6 — Sample Files
+**status:** Phase 4/6 — Import Code + Tests
 
 ## Phase 1: Issue Understanding
 Source system: Foo Clinic. Nightly CSV extract emailed to the team.
@@ -29,4 +29,13 @@ edge-cases.md reviewed. Relevant cases: ambiguous dates, null/placeholder MRN, u
 clean.csv: 5 rows — all required fields present, YYYY-MM-DD dates, known gender values, all four language codes exercised, all four source_system_code values covered.
 cleanable.csv: 5 rows — whitespace on names (row 6, safe to strip); missing health_card_number (row 7, optional → omit, warn); placeholder health_card_number "000-000-000" (row 8, optional field placeholder → omit identifier entry, warn); missing first_name (row 9, optional → omit, warn); unknown gender code "EXTRATERRESTRIAL" (row 10, → warn, map to unknown). Also rows 7 and 8 contain allergies/medications values → warn per-row that these require separate import.
 not-cleanable.csv: 5 rows — MM/DD/YYYY date "03/12/1978" (row 11, ambiguous: could be Mar 12 or Dec 3 → not-cleanable per edge-cases.md); partial date "2024-03" (row 12, incomplete → not-cleanable); blank MRN (row 13, untrackable); placeholder MRN "UNKNOWN" (row 14, untrackable). Row 15 is a valid control row to verify the importer continues past rejected rows.
+
+## Phase 4: Import Code
+Class: FooClinicPatientsImporter. mrn is the stable source ID; patient_id (row counter) not used as a FHIR identifier.
+Three identifier systems: SYSTEM_MRN (required, stable ID), SYSTEM_HEALTH_CARD (optional, omit on placeholder), SYSTEM_SOURCE_CODE (traceability, always preserve when present).
+_parse_dob() rejects partial YYYY-MM before attempting strptime; strptime failure rejects all other non-ISO formats — no format guessing.
+allergies/medications omitted from Patient resource; per-row warning fires when non-null value present so operator knows a separate pass is needed.
+verify_bundle() allows empty entry list (all rows rejected) rather than raising — caller inspects importer.exceptions.
+verify_import() queries by SYSTEM_MRN identifier; excludes placeholder and rejected MRNs from the expected set.
+Tests: conftest.py loads importer.py via importlib (same as runner). test_clean_data: 5 rows imported, warnings/exceptions both empty, MRN IDs in order, ifNoneExist on every entry, BCP-47 language codes verified. test_cleanable_data: 5 rows imported, exceptions empty, warnings populated; per-case assertions for whitespace strip, placeholder health card, missing first_name, unknown gender, allergies/meds warn. test_bad_data: 4 exceptions, 1 control row in bundle; specific rejection reasons checked for each bad MRN.
 
