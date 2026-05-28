@@ -130,15 +130,14 @@ class FooClinicPatientsImporter(BaseImporter):
             patient["identifier"].append({"system": SYSTEM_SOURCE_CODE, "value": source_code})
 
         # Name fields — strip whitespace; missing fields are optional, warn.
-        last_name = row.get("last_name", "").strip()
-        first_name = row.get("first_name", "").strip()
-
         raw_last = row.get("last_name", "")
         raw_first = row.get("first_name", "")
+        last_name = raw_last.strip()
+        first_name = raw_first.strip()
 
-        if raw_last != raw_last.strip():
+        if raw_last != last_name:
             self._warn(mrn, f"whitespace stripped from last_name '{raw_last}'")
-        if raw_first != raw_first.strip():
+        if raw_first != first_name:
             self._warn(mrn, f"whitespace stripped from first_name '{raw_first}'")
 
         if last_name:

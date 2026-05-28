@@ -91,5 +91,8 @@ def test_not_cleanable_bad_rows_absent_from_bundle():
         for id_ in entry["resource"]["identifier"]
         if id_["system"] == SYSTEM_MRN
     ]
-    for bad_mrn in ("MRN-200011", "MRN-200012"):
+    # All four rejected rows must be absent — date rejections and MRN rejections alike.
+    for bad_mrn in ("MRN-200011", "MRN-200012", "UNKNOWN"):
         assert bad_mrn not in imported_mrns
+    # Blank MRN row never gets an MRN identifier entry, so verify no nameless entry slipped in.
+    assert len(imp._bundle["entry"]) == 1
