@@ -1,0 +1,42 @@
+#!/bin/bash
+# Create an Observation (lab result or vital sign) linked to a Patient and Encounter.
+# Requires: MEDPLUM_TOKEN
+#
+# Example: a final cholesterol result.
+
+curl -s -X POST http://localhost:8103/fhir/R4/Observation \
+  -H "Authorization: Bearer $MEDPLUM_TOKEN" \
+  -H "Content-Type: application/fhir+json" \
+  -d '{
+    "resourceType": "Observation",
+    "status": "final",
+    "category": [{
+      "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory", "display": "Laboratory" }]
+    }],
+    "code": {
+      "coding": [{ "system": "http://loinc.org", "code": "35200-5", "display": "Cholesterol [Mass/volume]" }],
+      "text": "Cholesterol"
+    },
+    "subject": { "reference": "Patient/PATIENT_ID_HERE" },
+    "encounter": { "reference": "Encounter/ENCOUNTER_ID_HERE" },
+    "effectiveDateTime": "2024-03-01T10:00:00Z",
+    "valueQuantity": {
+      "value": 185,
+      "unit": "mg/dL",
+      "system": "http://unitsofmeasure.org",
+      "code": "mg/dL"
+    },
+    "interpretation": [{
+      "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", "code": "N", "display": "Normal" }]
+    }],
+    "referenceRange": [{ "high": { "value": 200, "unit": "mg/dL" } }]
+  }' | python3 -m json.tool
+
+# --- Vital signs variant: Blood Pressure ---
+# Replace the code block above with this for BP (two components):
+#
+# "code": { "coding": [{ "system": "http://loinc.org", "code": "85354-9", "display": "Blood pressure panel" }] },
+# "component": [
+#   { "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6", "display": "Systolic BP" }] }, "valueQuantity": { "value": 120, "unit": "mmHg" } },
+#   { "code": { "coding": [{ "system": "http://loinc.org", "code": "8462-4", "display": "Diastolic BP" }] }, "valueQuantity": { "value": 80, "unit": "mmHg" } }
+# ]

@@ -1,0 +1,27 @@
+#!/bin/bash
+# Authenticate to local Medplum and get an access token.
+# Uses the RFC 7636 PKCE test vectors — safe for local dev.
+#
+# After running, MEDPLUM_TOKEN is set in the current shell:
+#   source scripts/authenticate.sh.example
+
+MEDPLUM_BASE_URL="http://localhost:8103"
+MEDPLUM_EMAIL="admin@example.com"
+MEDPLUM_PASSWORD="medplum_admin"
+
+CODE=$(curl -s -X POST "$MEDPLUM_BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "'"$MEDPLUM_EMAIL"'",
+    "password": "'"$MEDPLUM_PASSWORD"'",
+    "codeChallenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+    "codeChallengeMethod": "S256"
+  }' | python3 -c "import sys,json; print(json.load(sys.stdin)['code'])")
+
+MEDPLUM_TOKEN=$(curl -s -X POST "$MEDPLUM_BASE_URL/oauth2/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code&code=$CODE&code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+export MEDPLUM_TOKEN
+echo "Token acquired. Expires in 1 hour."

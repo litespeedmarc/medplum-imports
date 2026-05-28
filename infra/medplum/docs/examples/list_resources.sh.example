@@ -1,0 +1,29 @@
+#!/bin/bash
+# Search / list resources of any type with optional query parameters.
+# Requires: MEDPLUM_TOKEN
+
+# List all patients (last 20 updated, specific fields)
+curl -s "http://localhost:8103/fhir/R4/Patient?_count=20&_sort=-_lastUpdated&_fields=id,name,birthDate,gender" \
+  -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool
+
+# --- Other useful variants ---
+
+# Search patients by name
+# curl -s "http://localhost:8103/fhir/R4/Patient?name=Smith" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool
+
+# List observations for a specific patient
+# curl -s "http://localhost:8103/fhir/R4/Observation?subject=Patient/PATIENT_ID&_sort=-date" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool
+
+# List active tasks owned by a practitioner
+# curl -s "http://localhost:8103/fhir/R4/Task?status=ready,in-progress&owner=Practitioner/ID" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool
+
+# Count resources without fetching them (fast health check)
+# curl -s "http://localhost:8103/fhir/R4/Patient?_summary=count" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool
+
+# Get everything related to a patient ($everything operation)
+# curl -s "http://localhost:8103/fhir/R4/Patient/PATIENT_ID/\$everything" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN" | python3 -m json.tool

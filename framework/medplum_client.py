@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from .exceptions import ImportVerificationError
 
@@ -61,6 +62,60 @@ class MedplumClient:
             )
         resp.raise_for_status()
         return resp.json()
+
+    def post_bundle_async(self, bundle: dict) -> tuple[str, str]:
+        """
+        POST a bundle with Prefer: respond-async.
+        Returns (job_id, job_url) immediately — does not wait for completion.
+        job_url shape: /fhir/R4/job/{id}/status (confirmed against live instance)
+        """
+        headers = {**self._headers(), "Prefer": "respond-async"}
+        resp = requests.post(f"{MEDPLUM_BASE_URL}/fhir/R4", json=bundle, headers=headers)
+        if resp.status_code == 401:
+            self._token = None
+            headers = {**self._headers(), "Prefer": "respond-async"}
+            resp = requests.post(f"{MEDPLUM_BASE_URL}/fhir/R4", json=bundle, headers=headers)
+        resp.raise_for_status()
+
+        job_url = resp.headers.get("Content-Location")
+        if not job_url:
+            raise RuntimeError("Medplum returned 202 but no Content-Location header")
+        job_id = job_url.split("/job/")[1].split("/")[0]
+        return job_id, job_url
+
+    def get_job_status(self, job_url: str) -> dict:
+        """Poll an AsyncJob status URL. Returns the AsyncJob resource."""
+        resp = requests.get(job_url, headers=self._headers())
+        if resp.status_code == 401:
+            self._token = None
+            resp = requests.get(job_url, headers=self._headers())
+        resp.raise_for_status()
+        return resp.json()
+
+    def wait_for_job(self, job_url: str, poll_interval: int = 2, timeout: int = 300) -> dict:
+        """
+        Poll job_url until status is completed or error.
+        Returns the final AsyncJob resource.
+        Raises RuntimeError on timeout or Medplum-reported error.
+        """
+        deadline = time.time() + timeout
+        interval = poll_interval
+        while time.time() < deadline:
+            job = self.get_job_status(job_url)
+            status = job.get("status")
+            if status == "completed":
+                return job
+            if status == "error":
+                issues = (job.get("output", {})
+                             .get("parameter", [{}])[0]
+                             .get("resource", {})
+                             .get("issue", [{}]))
+                detail = issues[0].get("diagnostics", "unknown error")
+                raise RuntimeError(f"AsyncJob failed: {detail}")
+            print(f"[runner] job status: {status} — waiting {interval}s")
+            time.sleep(interval)
+            interval = min(interval * 2, 30)  # exponential backoff, cap at 30s
+        raise RuntimeError(f"AsyncJob timed out after {timeout}s: {job_url}")
 
     def search(self, resource_type: str, params: dict) -> dict:
         resp = requests.get(

@@ -1,5 +1,31 @@
+# KISS: synchronous post — Medplum holds the connection open until processing is done.
+# This is the right default for a demo/CLI import tool running one job at a time.
+#
+# YAGNI: async + webhook is a real upgrade path but not needed until we have:
+#   - bundles large enough to hit HTTP timeouts (Medplum default: 60s)
+#   - concurrent imports that would benefit from fan-out
+#
+# When that day comes, the full event-driven path looks like this:
+#
+#   runner (main thread)              webhook thread         Medplum
+#   ──────────────────────────        ──────────────         ──────────────────
+#   POST Subscription{rest-hook}
+#     endpoint: host.docker.internal:{port}/webhook
+#     criteria: AsyncJob?status=completed
+#   post_bundle(Prefer:respond-async) → 202 + job_url
+#   save_job(job_id)  ← crash resilience
+#   Event.wait(timeout=300) ────────→ serve_forever()
+#     (main thread suspended)                         processes bundle
+#                                   ←─ POST /webhook ──────────────
+#                                   Event.set()
+#   ← unblocks
+#   DELETE Subscription
+#   verify_import()
+#
+#   MedplumClient already has post_bundle_async() / get_job_status() / wait_for_job()
+#   if you want to wire this up. checkpoint.py has the job persistence layer.
+
 import importlib.util
-import sys
 from pathlib import Path
 
 from .base_importer import BaseImporter
@@ -50,47 +76,40 @@ def run(config_type: str, source_moniker: str) -> dict:
     source = _resolve_source(source_moniker)
     importer: BaseImporter = ImporterClass(source)
 
-    print("[runner] step 1/5 — validate_source")
+    print("[runner] step 1/4 — validate_source")
     importer.validate_source()
 
-    print("[runner] step 2/5 — generate_bundle")
+    print("[runner] step 2/4 — generate_bundle")
     bundle = importer.generate_bundle()
 
-    print("[runner] step 3/5 — verify_bundle")
+    print("[runner] step 3/4 — verify_bundle")
     importer.verify_bundle()
 
-    print("[runner] step 4/5 — posting bundle to Medplum")
     client = MedplumClient()
-    result = client.post_bundle(bundle)
-
-    _report_results(result, importer.bundle_type())
-
-    print("[runner] step 5/5 — verify_import")
     importer._medplum = client
+
+    entry_count = len(bundle.get("entry", []))
+    print(f"[runner] step 4/4 — post + verify ({entry_count} entries)")
+    result = client.post_bundle(bundle)
+    _log_batch_result(result, importer.bundle_type())
+
     importer.verify_import()
 
     print("[runner] done.")
     return result
 
 
-def _report_results(response: dict, bundle_type: str) -> None:
+def _log_batch_result(response: dict, bundle_type: str) -> None:
     entries = response.get("entry", [])
     if bundle_type != "batch":
-        print(f"[runner] posted {len(entries)} entries (transaction)")
+        print(f"[runner] {len(entries)} entries committed (transaction)")
         return
 
-    succeeded = []
-    failed = []
-    for i, entry in enumerate(entries):
-        status = entry.get("response", {}).get("status", "")
-        if status.startswith("2"):
-            succeeded.append(i)
-        else:
-            outcome = entry.get("response", {}).get("outcome", {})
-            issues = outcome.get("issue", [{}])
-            detail = issues[0].get("diagnostics", status)
-            failed.append((i, detail))
+    ok = sum(1 for e in entries if e.get("response", {}).get("status", "").startswith("2"))
+    failed = [(i, e) for i, e in enumerate(entries)
+              if not e.get("response", {}).get("status", "").startswith("2")]
 
-    print(f"[runner] batch results: {len(succeeded)} succeeded, {len(failed)} failed")
-    for i, detail in failed:
-        print(f"[runner]   entry {i} failed: {detail}")
+    print(f"[runner] batch: {ok} ok, {len(failed)} failed")
+    for i, entry in failed:
+        issues = entry.get("response", {}).get("outcome", {}).get("issue", [{}])
+        print(f"[runner]   entry {i}: {issues[0].get('diagnostics', 'unknown')}")

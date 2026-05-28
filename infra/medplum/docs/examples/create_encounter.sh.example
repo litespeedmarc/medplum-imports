@@ -1,0 +1,29 @@
+#!/bin/bash
+# Create an Encounter linked to an existing Patient.
+# Requires: MEDPLUM_TOKEN, and a known PATIENT_ID.
+#
+# Replace Patient/PATIENT_ID_HERE and Practitioner/PRACTITIONER_ID_HERE with real IDs.
+
+curl -s -X POST http://localhost:8103/fhir/R4/Encounter \
+  -H "Authorization: Bearer $MEDPLUM_TOKEN" \
+  -H "Content-Type: application/fhir+json" \
+  -d '{
+    "resourceType": "Encounter",
+    "status": "in-progress",
+    "class": {
+      "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+      "code": "AMB",
+      "display": "Ambulatory"
+    },
+    "type": [{
+      "coding": [{ "system": "http://snomed.info/sct", "code": "11429006", "display": "Consultation" }]
+    }],
+    "subject": { "reference": "Patient/PATIENT_ID_HERE" },
+    "participant": [{
+      "individual": { "reference": "Practitioner/PRACTITIONER_ID_HERE" }
+    }],
+    "period": { "start": "2024-03-01T09:00:00Z" },
+    "reasonCode": [{
+      "coding": [{ "system": "http://snomed.info/sct", "code": "44054006", "display": "Type 2 diabetes mellitus" }]
+    }]
+  }' | python3 -m json.tool

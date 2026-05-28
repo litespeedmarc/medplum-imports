@@ -1,0 +1,17 @@
+#!/bin/bash
+# Delete a specific resource by type and ID.
+# Requires: MEDPLUM_TOKEN
+#
+# WARNING: Deletes are permanent in Medplum (no recycle bin).
+# Replace RESOURCE_TYPE and RESOURCE_ID before running.
+
+curl -s -X DELETE "http://localhost:8103/fhir/R4/RESOURCE_TYPE/RESOURCE_ID" \
+  -H "Authorization: Bearer $MEDPLUM_TOKEN"
+
+echo "Deleted RESOURCE_TYPE/RESOURCE_ID"
+
+# --- To delete all resources of a type (use clear_resource_type.sh.example) ---
+
+# --- Conditional delete (delete by search criteria) ---
+# curl -s -X DELETE "http://localhost:8103/fhir/R4/Patient?identifier=http://example.org/mrn|MRN-001" \
+#   -H "Authorization: Bearer $MEDPLUM_TOKEN"

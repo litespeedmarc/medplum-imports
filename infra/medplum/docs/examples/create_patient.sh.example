@@ -1,0 +1,35 @@
+#!/bin/bash
+# Create a Patient resource.
+# Requires: MEDPLUM_TOKEN (run authenticate.sh.example first)
+#
+# Returns the created Patient JSON including the assigned id.
+
+curl -s -X POST http://localhost:8103/fhir/R4/Patient \
+  -H "Authorization: Bearer $MEDPLUM_TOKEN" \
+  -H "Content-Type: application/fhir+json" \
+  -d '{
+    "resourceType": "Patient",
+    "identifier": [
+      {
+        "type": { "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/v2-0203", "code": "MR" }] },
+        "system": "http://example.org/mrn",
+        "value": "MRN-1001"
+      }
+    ],
+    "active": true,
+    "name": [{ "use": "official", "family": "Smith", "given": ["Alice"] }],
+    "gender": "female",
+    "birthDate": "1985-03-15",
+    "telecom": [
+      { "system": "phone", "value": "555-867-5309", "use": "mobile" },
+      { "system": "email", "value": "alice.smith@example.com" }
+    ],
+    "address": [{
+      "use": "home",
+      "line": ["123 Main St"],
+      "city": "Boston",
+      "state": "MA",
+      "postalCode": "02101",
+      "country": "US"
+    }]
+  }' | python3 -m json.tool
